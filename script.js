@@ -1,30 +1,35 @@
 // 1. Configuração do Mapa
 const map = L.map('map').setView([39.5, -8.5], 6);
 
-// Layer de mapa escuro (estilo radar)
+// Fundo Escuro para parecer um Radar
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap'
+    attribution: '&copy; CartoDB'
 }).addTo(map);
 
 let markers = {};
 
-// Função para atualizar os aviões
 async function updatePlanes() {
+    const statusEl = document.getElementById('count');
+    
+    // URL original do OpenSky para Portugal
+    const openSkyUrl = 'https://opensky-network.org/api/states/all?lamin=32.0&lomin=-15.0&lamax=42.5&lomax=-6.0';
+    
+    // USAMOS UM PROXY para evitar o erro de CORS (Segurança do Browser)
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(openSkyUrl)}`;
+
     try {
-        // Bounding Box de Portugal: lamin, lomin, lamax, lomax
-        const url = `https://opensky-network.org/api/states/all?lamin=32.0&lomin=-32.0&lamax=42.5&lomax=-6.0`;
+        statusEl.innerText = "A ligar à rede...";
+        const response = await fetch(proxyUrl);
+        const wrapper = await response.json();
         
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Limite da API atingido ou erro de servidor');
-        
-        const data = await response.json();
+        // O AllOrigins mete a resposta dentro de .contents, precisamos de converter para JSON
+        const data = JSON.parse(wrapper.contents);
         const planes = data.states || [];
         
-        document.getElementById('count').innerText = `${planes.length} aviões detetados`;
+        statusEl.innerText = `${planes.length} aviões detetados`;
 
         planes.forEach(s => {
             const icao = s[0];
-            // JS usa .trim() e não .strip()
             const callsign = s[1] ? s[1].trim() : "N/A";
             const lon = s[5];
             const lat = s[6];
@@ -33,18 +38,15 @@ async function updatePlanes() {
 
             if (lat && lon) {
                 if (markers[icao]) {
-                    // Atualiza posição
                     markers[icao].setLatLng([lat, lon]);
-                    markers[icao].setRotationAngle ? markers[icao].setRotationAngle(rot) : null;
                 } else {
-                    // Define se é TAP para mudar a cor ou ícone
                     const isTAP = callsign.startsWith("TAP");
-                    const color = isTAP ? "#00ff00" : "#ffffff"; // Verde para TAP, Branco para outros
+                    const color = isTAP ? "#00ff00" : "#ffffff";
 
                     markers[icao] = L.marker([lat, lon], {
                         icon: L.divIcon({
                             className: 'plane-icon',
-                            html: `<div style="transform: rotate(${rot-45}deg); color: ${color}; font-size: 20px; text-shadow: 0 0 5px black;">✈️</div>`,
+                            html: `<div style="transform: rotate(${rot-45}deg); color: ${color}; font-size: 20px; text-shadow: 0 0 3px #000;">✈️</div>`,
                             iconSize: [20, 20]
                         })
                     }).addTo(map).bindPopup(`<b>${callsign}</b><br>Alt: ${altitude}m`);
@@ -53,10 +55,10 @@ async function updatePlanes() {
         });
     } catch (err) {
         console.error("Erro técnico:", err);
-        document.getElementById('count').innerText = "Erro ao carregar dados";
+        statusEl.innerText = "Erro: API ocupada. Tenta daqui a pouco.";
     }
 }
 
-// Atualizar a cada 10 segundos
-setInterval(updatePlanes, 10000);
+// Atualiza a cada 15 segundos (mais seguro para não seres bloqueado)
+setInterval(updatePlanes, 15000);
 updatePlanes();
