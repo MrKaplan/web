@@ -11,7 +11,7 @@ async function updatePlanes() {
     
     // 1. Configura os teus dados
     const user = "faginea";
-    const pass = "A_TUA_PASSWORD"; // <--- Mete a tua pass aqui
+    const pass = "Pardinus2000"; // <--- Mete a tua pass aqui
     const auth = btoa(`${user}:${pass}`);
 
     // Bounding box de Portugal
