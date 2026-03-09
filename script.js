@@ -9,13 +9,14 @@ let markers = {};
 async function updatePlanes() {
     const statusEl = document.getElementById('count');
     
+    // 1. Configura os teus dados
     const user = "faginea";
     const pass = "Pardinus2000"; // <--- Garante que a pass está correta
     const auth = btoa(`${user}:${pass}`);
 
     const openSkyUrl = 'https://opensky-network.org/api/states/all?lamin=32.0&lomin=-15.0&lamax=42.5&lomax=-6.0';
     
-    // MUDANÇA DE PROXY: Usamos agora o CodeTabs que é mais robusto
+    // 2. MUDANÇA DE PROXY: Usamos agora o CodeTabs que é mais robusto
     const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(openSkyUrl)}`;
 
     try {
