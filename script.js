@@ -13,7 +13,7 @@ async function updatePlanes() {
     
     // 1. Teu Login (Base64)
     const user = "faginea";
-    const pass = "A_TUA_PASSWORD_AQUI"; // <--- Escreve a tua pass aqui
+    const pass = "Pardinus2000"; // <--- Escreve a tua pass aqui
     const auth = btoa(`${user}:${pass}`);
 
     const openSkyUrl = 'https://opensky-network.org/api/states/all?lamin=32.0&lomin=-15.0&lamax=42.5&lomax=-6.0';
