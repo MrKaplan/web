@@ -9,19 +9,17 @@ let markers = {};
 async function updatePlanes() {
     const statusEl = document.getElementById('count');
     
-    // 1. Configura os teus dados
     const user = "faginea";
-    const pass = "Pardinus2000"; // <--- Mete a tua pass aqui
+    const pass = "Pardinus2000"; // <--- Garante que a pass está correta
     const auth = btoa(`${user}:${pass}`);
 
-    // Bounding box de Portugal
     const openSkyUrl = 'https://opensky-network.org/api/states/all?lamin=32.0&lomin=-15.0&lamax=42.5&lomax=-6.0';
     
-    // 2. USAMOS O CORSPROXY.IO (Simples e eficaz)
-    const finalUrl = `https://corsproxy.io/?${encodeURIComponent(openSkyUrl)}`;
+    // MUDANÇA DE PROXY: Usamos agora o CodeTabs que é mais robusto
+    const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(openSkyUrl)}`;
 
     try {
-        statusEl.innerText = "A consultar radar...";
+        statusEl.innerText = "A consultar radar (via CodeTabs)...";
         
         const response = await fetch(finalUrl, {
             headers: {
@@ -29,14 +27,20 @@ async function updatePlanes() {
             }
         });
 
-        if (response.status === 429) {
-            statusEl.innerText = "Limite atingido. Espera 1 min.";
-            return;
+        // Se a resposta não for OK, nem tentamos ler o JSON
+        if (!response.ok) {
+            throw new Error(`Servidor respondeu com erro ${response.status}`);
         }
 
         const data = await response.json();
-        const planes = data.states || [];
         
+        // Verificação extra se temos dados válidos
+        if (!data || !data.states) {
+            statusEl.innerText = "Sem aviões na zona de momento.";
+            return;
+        }
+
+        const planes = data.states;
         statusEl.innerText = `${planes.length} aviões (Conta: faginea)`;
 
         planes.forEach(s => {
@@ -65,11 +69,11 @@ async function updatePlanes() {
             }
         });
     } catch (err) {
-        console.error(err);
-        statusEl.innerText = "Erro na rede. A tentar novamente...";
+        console.error("Erro no Radar:", err);
+        statusEl.innerText = "Erro na rede. A tentar novamente em 20s...";
     }
 }
 
-// Aumenta para 20 segundos para não seres bloqueado por "Too many requests"
+// 20 segundos para respeitar os limites da API
 setInterval(updatePlanes, 20000);
 updatePlanes();
