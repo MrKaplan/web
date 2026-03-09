@@ -9,40 +9,31 @@ let markers = {};
 async function updatePlanes() {
     const statusEl = document.getElementById('count');
     
-    // 1. Configura os teus dados
-    const user = "faginea";
-    const pass = "Pardinus2000"; // <--- Garante que a pass está correta
-    const auth = btoa(`${user}:${pass}`);
-
+    // Bounding box de Portugal (Sem passwords desta vez!)
     const openSkyUrl = 'https://opensky-network.org/api/states/all?lamin=32.0&lomin=-15.0&lamax=42.5&lomax=-6.0';
     
-    // 2. MUDANÇA DE PROXY: Usamos agora o CodeTabs que é mais robusto
-    const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(openSkyUrl)}`;
+    // Usamos o AllOrigins no modo RAW (devolve o JSON direto sem espinhas e não precisa de preflight)
+    const finalUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(openSkyUrl)}`;
 
     try {
-        statusEl.innerText = "A consultar radar (via CodeTabs)...";
+        statusEl.innerText = "A pesquisar aviões...";
         
-        const response = await fetch(finalUrl, {
-            headers: {
-                "Authorization": `Basic ${auth}`
-            }
-        });
+        // Pedido SIMPLES: Sem headers personalizados para não assustar o CORS
+        const response = await fetch(finalUrl);
 
-        // Se a resposta não for OK, nem tentamos ler o JSON
         if (!response.ok) {
             throw new Error(`Servidor respondeu com erro ${response.status}`);
         }
 
         const data = await response.json();
         
-        // Verificação extra se temos dados válidos
         if (!data || !data.states) {
-            statusEl.innerText = "Sem aviões na zona de momento.";
+            statusEl.innerText = "Sem aviões na zona.";
             return;
         }
 
         const planes = data.states;
-        statusEl.innerText = `${planes.length} aviões (Conta: faginea)`;
+        statusEl.innerText = `${planes.length} aviões detetados`;
 
         planes.forEach(s => {
             const icao = s[0];
@@ -54,8 +45,10 @@ async function updatePlanes() {
 
             if (lat && lon) {
                 if (markers[icao]) {
+                    // Atualiza a posição
                     markers[icao].setLatLng([lat, lon]);
                 } else {
+                    // Se for TAP, pinta de verde. Se não, branco.
                     const isTAP = callsign.startsWith("TAP");
                     const color = isTAP ? "#00ff00" : "#ffffff";
 
@@ -71,10 +64,10 @@ async function updatePlanes() {
         });
     } catch (err) {
         console.error("Erro no Radar:", err);
-        statusEl.innerText = "Erro na rede. A tentar novamente em 20s...";
+        statusEl.innerText = "Radar ocupado. A tentar novamente em 30s...";
     }
 }
 
-// 20 segundos para respeitar os limites da API
-setInterval(updatePlanes, 20000);
+// 30 segundos de intervalo. É o "sweet spot" para não sermos bloqueados pelos proxies públicos.
+setInterval(updatePlanes, 30000);
 updatePlanes();
